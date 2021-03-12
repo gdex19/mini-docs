@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Slate, Editable, withReact } from 'slate-react';
 import { Editor, createEditor, Operation } from 'slate';
-import Mitt from 'mitt';
-import { RemoveTextOperation } from 'slate';
+import io from 'socket.io-client'
 
-const emitter = new Mitt();
+const socket = io('http://localhost:4000');
 
 export const SyncingEditor = () => {
     const [value, setValue] = useState([
@@ -14,23 +13,25 @@ export const SyncingEditor = () => {
         },
     ])
     const id = useRef(`${Date.now()}`);
+    // What was the point of this in the original?
     const editable = useRef(null);
     const editor = useMemo(() => withReact(createEditor()), [])
     const remote = useRef(false);
     
     useEffect(() => {
-        emitter.on("*", (type, ops) => {
-            if (id.current !== type) {
+        socket.on('new-remote-operations', ({editorId, ops}) => {
+            console.log(socket)
+            if (id.current !== editorId) {
                 remote.current = true;
-                console.log(editable)
                 // Had to change, may have bugs
                 ops.forEach(op => {
                     editor.apply(op)
                 });
                 remote.current = false;
             }
-        });
-    }, []);
+        })
+    // What is dependency array?
+    }, [editor]);
     return (<Slate 
             editor={editor} 
             value={value} 
@@ -51,7 +52,7 @@ export const SyncingEditor = () => {
                 .map(o => ({...o, data: { source: "one" } }));
                 console.log(ops)
                 if (ops.length && !remote.current) {
-                    emitter.emit(id.current, ops)
+                    socket.emit('new-operations', {editorId: id.current, ops: ops})
                 }
             }}
     >
