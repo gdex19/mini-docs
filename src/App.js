@@ -4,13 +4,10 @@ import { SyncingEditor } from './SyncingEditor'
 const App = () => {
   return (
     <div>
-    <div>
+      <SyncingEditor />
+      <br />
       <SyncingEditor />
     </div>
-    <div>
-    <SyncingEditor />
-  </div>
-  </div>
   )
 }
 

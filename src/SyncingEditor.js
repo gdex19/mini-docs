@@ -14,17 +14,18 @@ export const SyncingEditor = () => {
         },
     ])
     const id = useRef(`${Date.now()}`);
-    const editable = useRef<Editor | null>(null);
+    const editable = useRef(null);
     const editor = useMemo(() => withReact(createEditor()), [])
     const remote = useRef(false);
+    
     useEffect(() => {
         emitter.on("*", (type, ops) => {
             if (id.current !== type) {
                 remote.current = true;
+                console.log(editable)
+                // Had to change, may have bugs
                 ops.forEach(op => {
-                    if (editable.current) {
-                        editable.current.applyOperation(op)
-                    }
+                    editor.apply(op)
                 });
                 remote.current = false;
             }
@@ -37,10 +38,11 @@ export const SyncingEditor = () => {
                 setValue(opts);
                 const ops = editor.operations.filter(o => {
                     if (o) {
+                        console.log(o.data)
                         return (
                             o.type !== "set_selection" &&
                             o.type !== "set_value" &&
-                            (!o.data || !o.data.has("source"))
+                            (!o.data || !o.data.hasOwnProperty("source"))
                         );
                     }
 
