@@ -1,11 +1,17 @@
-import React from "react";
-import { Editor } from "slate-react";
-import { Value } from "slate";
+import React from "react"
+import { SyncingEditor } from './SyncingEditor'
 
-const App: React.FC = () => {
+const App = () => {
   return (
-    <div>hey</div>
-  );
+    <div>
+    <div>
+      <SyncingEditor />
+    </div>
+    <div>
+    <SyncingEditor />
+  </div>
+  </div>
+  )
 }
 
 export default App;
