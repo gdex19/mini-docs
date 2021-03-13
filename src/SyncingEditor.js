@@ -19,8 +19,13 @@ export const SyncingEditor = () => {
   const remote = useRef(false);
 
   useEffect(() => {
+    socket.once("init-value", (value) => {
+      setValue(value);
+    });
+
+    socket.emit("send-value");
+
     socket.on("new-remote-operations", ({ editorId, ops }) => {
-      console.log(socket);
       if (id.current !== editorId) {
         remote.current = true;
         // Had to change, may have bugs
@@ -30,6 +35,10 @@ export const SyncingEditor = () => {
         remote.current = false;
       }
     });
+
+    return () => {
+      socket.off("new-remote-operations");
+    };
     // What is dependency array?
   }, [editor]);
   return (
@@ -41,7 +50,6 @@ export const SyncingEditor = () => {
         const ops = editor.operations
           .filter((o) => {
             if (o) {
-              console.log(o.data);
               return (
                 o.type !== "set_selection" &&
                 o.type !== "set_value" &&
@@ -52,9 +60,12 @@ export const SyncingEditor = () => {
             return false;
           })
           .map((o) => ({ ...o, data: { source: "one" } }));
-        console.log(ops);
         if (ops.length && !remote.current) {
-          socket.emit("new-operations", { editorId: id.current, ops: ops });
+          socket.emit("new-operations", {
+            editorId: id.current,
+            ops: ops,
+            value: opts,
+          });
         }
       }}
     >
