@@ -5,7 +5,7 @@ import io from "socket.io-client";
 
 const socket = io("http://localhost:4000");
 
-export const SyncingEditor = () => {
+export const SyncingEditor = ({ groupId }) => {
   const [value, setValue] = useState([
     {
       type: "paragraph",
@@ -19,13 +19,14 @@ export const SyncingEditor = () => {
   const remote = useRef(false);
 
   useEffect(() => {
-    socket.once("init-value", (value) => {
-      setValue(value);
-    });
+    fetch(`http://localhost:4000/group/${groupId}`).then((x) =>
+      x.json().then((data) => {
+        setValue(data);
+      })
+    );
 
-    socket.emit("send-value");
-
-    socket.on("new-remote-operations", ({ editorId, ops }) => {
+    const eventName = `new-remote-operations-${groupId}`;
+    socket.on(eventName, ({ editorId, ops }) => {
       if (id.current !== editorId) {
         remote.current = true;
         // Had to change, may have bugs
@@ -37,10 +38,10 @@ export const SyncingEditor = () => {
     });
 
     return () => {
-      socket.off("new-remote-operations");
+      socket.off(eventName);
     };
     // What is dependency array?
-  }, [editor]);
+  }, [editor, groupId]);
   return (
     <Slate
       editor={editor}
@@ -63,6 +64,7 @@ export const SyncingEditor = () => {
         if (ops.length && !remote.current) {
           socket.emit("new-operations", {
             editorId: id.current,
+            groupId,
             ops: ops,
             value: opts,
           });

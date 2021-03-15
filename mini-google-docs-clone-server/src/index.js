@@ -1,3 +1,5 @@
+const { group } = require("console");
+
 const app = require("express")();
 const http = require("http").Server(app);
 const io = require("socket.io")(http, {
@@ -5,23 +7,35 @@ const io = require("socket.io")(http, {
     origin: "http://localhost:3000",
   },
 });
+const cors = require("cors");
 
-let value = [
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
+const value = [
   {
     type: "paragraph",
     children: [{ text: "A line of text in a paragraph." }],
   },
 ];
 
-io.on("connection", (socket) => {
-  socket.on("send-value", () => {
-    io.emit("init-value", value);
-  });
+let groupData = {};
 
+io.on("connection", (socket) => {
   socket.on("new-operations", function (data) {
-    value = data.value;
-    io.emit("new-remote-operations", data);
+    groupData[data.groupId] = data.value;
+    io.emit(`new-remote-operations-${data.groupId}`, data);
   });
+});
+
+app.get("/group/:id", (req, res) => {
+  const { id } = req.params;
+  if (!(id in groupData)) {
+    groupData[id] = value;
+  }
+  res.send(groupData[id]);
 });
 
 http.listen(4000, () => {
