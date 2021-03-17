@@ -3,9 +3,19 @@ import { Slate, Editable, withReact } from "slate-react";
 import { Editor, createEditor, Operation } from "slate";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:4000");
+// const socket = io("http://localhost:4000");
+
+const websocket = new WebSocket(
+  "wss://5jucswldp8.execute-api.us-east-2.amazonaws.com/dev"
+);
+
 
 export const SyncingEditor = ({ groupId }) => {
+  websocket.onopen = () => {
+    websocket.send(JSON.stringify({ action: "groupadd", groupID: groupId }));
+    websocket.send(JSON.stringify({ action: "getvalue", groupID: groupId }));
+  }
+  
   const [value, setValue] = useState([
     {
       type: "paragraph",
@@ -19,27 +29,42 @@ export const SyncingEditor = ({ groupId }) => {
   const remote = useRef(false);
 
   useEffect(() => {
-    fetch(`http://localhost:4000/group/${groupId}`).then((x) =>
-      x.json().then((data) => {
-        setValue(data);
-      })
-    );
 
-    const eventName = `new-remote-operations-${groupId}`;
-    socket.on(eventName, ({ editorId, ops }) => {
-      if (id.current !== editorId) {
-        remote.current = true;
-        // Had to change, may have bugs
-        ops.forEach((op) => {
-          editor.apply(op);
-        });
-        remote.current = false;
+    websocket.onmessage = function (event) {
+      const data = JSON.parse(event.data);
+      switch (data.type) {
+        case "getvalue":
+          setValue(data.value);
+          break;
+        case "new_ops":
+          const ops = data.ops;
+          remote.current = true;
+          // Had to change, may have bugs
+          ops.forEach((op) => {
+            editor.apply(op);
+          });
+          remote.current = false;
+          break;
       }
-    });
+    };
+
+    // socket.on(eventName, ({ editorId, ops }) => {
+    //   if (id.current !== editorId) {
+    //     remote.current = true;
+    //     // Had to change, may have bugs
+    //     ops.forEach((op) => {
+    //       editor.apply(op);
+    //     });
+    //     remote.current = false;
+    //   }
+    // });
 
     return () => {
-      socket.off(eventName);
+      //websocket.close();
     };
+    // return () => {
+    //   socket.off(eventName);
+    // };
     // What is dependency array?
   }, [editor, groupId]);
   return (
@@ -62,12 +87,20 @@ export const SyncingEditor = ({ groupId }) => {
           })
           .map((o) => ({ ...o, data: { source: "one" } }));
         if (ops.length && !remote.current) {
-          socket.emit("new-operations", {
-            editorId: id.current,
-            groupId,
-            ops: ops,
-            value: opts,
-          });
+          // socket.emit("new-operations", {
+          //   editorId: id.current,
+          //   groupId,
+          //   ops: ops,
+          //   value: opts,
+          // });
+          websocket.send(
+            JSON.stringify({
+              action: "message",
+              groupID: groupId,
+              ops: ops,
+              value: opts,
+            })
+          );
         }
       }}
     >
