@@ -1,0 +1,80 @@
+service: myserverlessproject2
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  profile: serverlessUser
+  region: us-east-2
+  environment:
+    tableName: ${self:custom.tableName}
+    docTableName: ${self:custom.docTableName}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:*
+      Resource: '*'
+
+custom:
+  tableName: WebsocketUsers
+  docTableName: DocGroups
+
+functions:
+  websocket-connect:
+    handler: lambdas/websockets/connect.handler
+    events:
+      - websocket: 
+          route: $connect
+  websocket-disconnect:
+    handler: lambdas/websockets/disconnect.handler
+    events:
+      - websocket:
+          route: $disconnect
+  websocket-default:
+    handler: lambdas/websockets/default.handler
+    events:
+      - websocket:
+          route: $default
+  websocket-message:
+    handler: lambdas/websockets/message.handler
+    events:
+      - websocket:
+          route: message
+  websocket-groupadd:
+    handler: lambdas/websockets/groupadd.handler
+    events:
+      - websocket:
+          route: groupadd
+  websocket-getvalue:
+    handler: lambdas/websockets/getvalue.handler
+    events:
+      - websocket:
+          route: getvalue
+
+
+resources:
+  Resources:
+    WebSocketUserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: ID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+    GroupDocsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.docTableName}
+        AttributeDefinitions:
+          - AttributeName: ID
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ID
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+      
+    
+                
