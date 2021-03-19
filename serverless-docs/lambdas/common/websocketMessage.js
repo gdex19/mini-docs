@@ -9,7 +9,6 @@ const create = (domainName, stage) => {
 };
 
 const send = ({ domainName, stage, connectionID, message }) => {
-  console.log("sending?");
   const ws = create(domainName, stage);
 
   const postParams = {
@@ -17,6 +16,7 @@ const send = ({ domainName, stage, connectionID, message }) => {
     ConnectionId: connectionID,
   };
 
+  console.log("sending?", postParams);
   return ws.postToConnection(postParams).promise();
 };
 

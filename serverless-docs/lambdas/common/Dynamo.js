@@ -16,7 +16,7 @@ const Dynamo = {
         if (!data || !data.Item) {
             throw Error(`There was an error fetching the data for ID of ${ID} from ${TableName}`);
         }
-        console.log(data);
+        console.log("Dynamo.get", data);
 
         return data.Item;
     },

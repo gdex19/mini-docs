@@ -8,16 +8,24 @@ const docTableName = process.env.docTableName;
 exports.handler = async (event) => {
   console.log("event", event);
 
+  const { connectionId: connectionID } = event.requestContext;
+
+  console.log("ConnectionID", connectionID);
+  const body = JSON.parse(event.body);
+
+  const connectionData = await Dynamo.get(connectionID, tableName);
+  
+  const { domainName, stage } = connectionData;
+
+  const defaultValue = [
+    {
+      type: "paragraph",
+      children: [{ text: "A line of text in a paragraph." }],
+    },
+  ];
+
   try {
-    const { connectionId: connectionID } = event.requestContext;
-
-    const body = JSON.parse(event.body);
-
-    const record = await Dynamo.get(connectionID, tableName);
-
-    const { domainName, stage } = record;
-
-    const { value } = await Dynamo.get(body.groupID, docTableName);
+    const { value = defaultValue } = await Dynamo.get(body.groupID, docTableName);
 
     WebSocket.send({
       domainName,
@@ -25,20 +33,8 @@ exports.handler = async (event) => {
       connectionID,
       message: JSON.stringify({value, type: "getvalue"})
     });
-  } catch {
-    const value = [
-      {
-        type: "paragraph",
-        children: [{ text: "A line of text in a paragraph." }],
-      },
-    ];
-
-    WebSocket.send({
-      domainName,
-      stage,
-      connectionID,
-      message: JSON.stringify({value, type: "getvalue"})
-    });
-  }
+  } catch (error) {
+      console.log("Error with getvalue", error);
+  };
   return Responses._200({ message: "added connection" });
 };
